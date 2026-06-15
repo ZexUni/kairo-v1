@@ -1,12 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:kairo/core/constants/app_colors.dart';
-
-import 'package:kairo/core/repositories/user_profile_repository.dart';
-import 'package:kairo/features/dashboard/dashboard_screen.dart';
-import 'package:kairo/features/onboarding/presentation/screens/welcome_screen.dart';
+import 'package:kairo/services/auth_service.dart';
+import 'package:kairo/data/repositories/user_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -50,19 +48,22 @@ class _SplashScreenState extends State<SplashScreen>
     Timer(const Duration(seconds: 3), () async {
       if (!mounted) return;
 
-      final profile = await UserProfileRepository.load();
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final user = auth.currentUser;
 
       if (!mounted) return;
 
-      final destination = profile != null && profile.onboardingCompleted
-          ? DashboardScreen(onboardingData: profile)
-          : const WelcomeScreen();
-
-      Navigator.pushReplacement(
-        context,
-
-        MaterialPageRoute(builder: (context) => destination),
-      );
+      if (user == null) {
+        context.go('/login');
+      } else {
+        final profile = await UserRepository().getProfile(user.uid);
+        if (!mounted) return;
+        if (profile == null) {
+          context.go('/onboarding');
+        } else {
+          context.go('/dashboard');
+        }
+      }
     });
   }
 
